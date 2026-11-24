@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../core/app_info.dart';
 import '../../core/constants.dart';
 import '../../core/date_utils.dart';
 import '../../data/backup/backup_codec.dart';
@@ -266,6 +267,8 @@ class _ProfileBody extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 28),
+        const _AppFooter(),
       ],
     );
   }
@@ -970,6 +973,28 @@ class _NotificationGuideSheetState
           onPressed: _resync,
           child: const Text('重新安排提醒'),
         ),
+      ],
+    );
+  }
+}
+
+/// 页脚：版本号运行时读取，避免发版后文案滞后（偏差 #14）。
+class _AppFooter extends ConsumerWidget {
+  const _AppFooter();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(packageInfoProvider).valueOrNull;
+    final theme = Theme.of(context).textTheme.bodySmall;
+    final version = info == null
+        ? '版本读取中'
+        : 'v${info.version} (${info.buildNumber})';
+
+    return Column(
+      children: [
+        Text('LiveBetter $version', style: theme),
+        const SizedBox(height: 4),
+        Text('开源 · Apache-2.0 ｜ 数据仅保存在本机', style: theme),
       ],
     );
   }

@@ -32,6 +32,12 @@ dependencies:
     sdk: flutter
   material_ui: ^1.1.0
 
+  # 端到端测试依赖。放在 dependencies 而非 dev_dependencies：
+  # Flutter 3.50 的 release 构建会剔除 dev 插件，但生成的 GeneratedPluginRegistrant
+  # 仍引用 IntegrationTestPlugin，导致 release 编译失败。
+  integration_test:
+    sdk: flutter
+
   # 状态管理与路由
   flutter_riverpod: ^2.6.1
   go_router: ^16.2.0
@@ -60,6 +66,7 @@ dependencies:
   flutter_image_compress: ^2.5.1
   share_plus: ^13.3.1
   file_picker: ^13.4.1
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +81,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  sqlite3: ^3.9.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

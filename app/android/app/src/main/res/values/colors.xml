@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 启动页背景：莫兰迪浅绿白，与 App 首屏底色一致，避免启动时闪白/闪黑 -->
+    <color name="splash_background">#F4F6F3</color>
+</resources>

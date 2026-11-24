@@ -25,3 +25,7 @@ Thumbs.db
 *.sqlite
 *.sqlite-journal
 livebetter-backup-*.json
+
+# 本地构建产物与截图暂存
+dist/
+.screenshots/
