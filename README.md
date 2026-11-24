@@ -87,7 +87,7 @@ flutter test integration_test/app_flow_test.dart -d <device-id>
 
 ## 发布
 
-推送 `v*` 标签即触发 CI 构建并创建 GitHub Release（APK + SHA256）：
+推送 `v*` 标签即触发 CI 构建并创建 GitHub Release，产物为 `LiveBetter-<tag>-arm64.apk` 与同名 `.sha256`：
 
 ```bash
 git tag v1.0.0
@@ -97,7 +97,7 @@ git push origin v1.0.0
 下载后可校验完整性：
 
 ```bash
-sha256sum -c app-release.apk.sha256
+sha256sum -c LiveBetter-v1.0.0-arm64.apk.sha256
 ```
 
 ## 隐私

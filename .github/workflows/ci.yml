@@ -88,16 +88,23 @@ jobs:
         working-directory: app
         run: flutter build apk --release --target-platform android-arm64
 
+      # 打 tag 时产出带版本号的文件名，校验和文件同时包含文件名，可直接 sha256sum -c 校验
       - name: 生成校验和
         working-directory: app/build/app/outputs/flutter-apk
-        run: sha256sum app-release.apk | awk '{print $1}' > app-release.apk.sha256
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == v* ]]; then
+            name="LiveBetter-${GITHUB_REF_NAME}-arm64.apk"
+            cp app-release.apk "$name"
+            sha256sum "$name" > "$name.sha256"
+          fi
+          sha256sum app-release.apk > app-release.apk.sha256
 
       - uses: actions/upload-artifact@v4
         with:
           name: livebetter-apk
           path: |
-            app/build/app/outputs/flutter-apk/app-release.apk
-            app/build/app/outputs/flutter-apk/app-release.apk.sha256
+            app/build/app/outputs/flutter-apk/*.apk
+            app/build/app/outputs/flutter-apk/*.sha256
           if-no-files-found: error
 
   release:
@@ -119,6 +126,6 @@ jobs:
         with:
           name: LiveBetter ${{ steps.notes.outputs.version }}
           files: |
-            dist/app-release.apk
-            dist/app-release.apk.sha256
+            dist/LiveBetter-*.apk
+            dist/LiveBetter-*.apk.sha256
           generate_release_notes: true
