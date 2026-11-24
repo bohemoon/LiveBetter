@@ -10,10 +10,17 @@ pluginManagement {
 
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
+    // 本地默认走国内镜像加速；CI 直接用官方仓库，避免镜像 5xx 时无法回落。
+    val useMirrors = System.getenv("CI") == null
     repositories {
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/central") }
-        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+        if (useMirrors) {
+            maven { url = uri("https://maven.aliyun.com/repository/google") }
+            maven { url = uri("https://maven.aliyun.com/repository/central") }
+            maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+        }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
     }
 }
 

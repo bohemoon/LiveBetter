@@ -1,8 +1,15 @@
+// 本地默认走国内镜像加速；CI（GitHub Actions 会设置 CI=true）直接用官方仓库，避免镜像不可用导致构建失败。
+val useMirrors = System.getenv("CI") == null
+
 allprojects {
     repositories {
-        maven { url = uri("file:///D:/dev/flutter-engine-repo") }
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/central") }
+        if (useMirrors) {
+            maven { url = uri("file:///D:/dev/flutter-engine-repo") }
+            maven { url = uri("https://maven.aliyun.com/repository/google") }
+            maven { url = uri("https://maven.aliyun.com/repository/central") }
+        }
+        google()
+        mavenCentral()
     }
 }
 
