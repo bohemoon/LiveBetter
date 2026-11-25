@@ -1,50 +1,13 @@
-import '../../../core/constants.dart';
-import '../../../core/date_utils.dart';
-import '../../../domain/demo_data.dart';
 import '../../backup/backup_codec.dart';
 import '../../db/database.dart';
 import '../../models/models.dart';
 import '../maintenance_repository.dart';
 
-/// 本地数据维护：演示数据、清除、JSON 导入导出。
+/// 本地数据维护：清除、JSON 导入导出。
 class LocalMaintenanceRepository implements MaintenanceRepository {
   LocalMaintenanceRepository(this._db);
 
   final AppDatabase _db;
-
-  @override
-  Future<void> seedDemoData() async {
-    var rows = await _db.habitDao.getAll();
-    if (rows.isEmpty) {
-      await _db.seedDefaults();
-      rows = await _db.habitDao.getAll();
-    }
-    final today = todayYmd();
-    final start = formatYmd(
-      parseYmd(today).subtract(const Duration(days: kDemoDataDays)),
-    );
-    var habits = rows.map(Habit.fromRow).toList(growable: false);
-    // 演示数据早于默认项目创建日期，先回填创建日以便统计可见。
-    for (final habit in habits) {
-      if (habit.createdAt.compareTo(start) > 0) {
-        final backdated = habit.copyWith(createdAt: start, updatedAt: nowIso());
-        await _db.habitDao.save(backdated);
-      }
-    }
-    habits = habits
-        .map((habit) => habit.createdAt.compareTo(start) > 0
-            ? habit.copyWith(createdAt: start)
-            : habit)
-        .toList(growable: false);
-    final records = buildDemoRecords(habits: habits, today: today);
-    await _db.transaction(() async {
-      for (final record in records) {
-        await _db
-            .into(_db.dailyRecords)
-            .insertOnConflictUpdate(record.toCompanion());
-      }
-    });
-  }
 
   @override
   Future<void> clearAllData() async {

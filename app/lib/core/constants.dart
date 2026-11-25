@@ -34,6 +34,3 @@ const String kDefaultSleepTarget = '23:30';
 
 /// 首页卡片网格列数。
 const int kTodayGridColumns = 2;
-
-/// 演示数据覆盖天数（与原型文案统一为 34 天）。
-const int kDemoDataDays = 34;

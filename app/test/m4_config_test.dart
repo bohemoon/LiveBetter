@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:livebetter/data/models/models.dart';
 import 'package:livebetter/domain/check_in_rules.dart';
-import 'package:livebetter/domain/demo_data.dart';
 import 'package:livebetter/domain/period_info.dart';
 import 'package:livebetter/domain/pin_hash.dart';
 import 'package:livebetter/domain/reminders.dart';
@@ -134,48 +133,6 @@ void main() {
       expect(
         pending.map((habit) => habit.id),
         ['active_pending', 'meter_pending'],
-      );
-    });
-  });
-
-  group('演示数据', () {
-    test('覆盖 34 天且不写入今天与未来', () {
-      const today = '2026-11-24';
-      final habits = [
-        makeHabit(id: 'active'),
-        makeHabit(id: 'passive', type: HabitType.passive),
-        makeHabit(id: 'meter', type: HabitType.meter, goal: 8),
-        makeHabit(
-          id: 'periodic',
-          type: HabitType.periodic,
-          intervalDays: 30,
-        ),
-      ];
-
-      final records = buildDemoRecords(habits: habits, today: today);
-      expect(records, isNotEmpty);
-      expect(records.any((item) => item.date == today), isFalse);
-      final keys = records.map((item) => '${item.habitId}@${item.date}').toSet();
-      expect(keys.length, records.length);
-      for (final item in records) {
-        expect(item.date.compareTo('2026-10-21'), greaterThanOrEqualTo(0));
-        expect(item.date.compareTo('2026-11-23'), lessThanOrEqualTo(0));
-        if (item.habitId == 'meter') {
-          expect(item.amount, lessThanOrEqualTo(8));
-        }
-      }
-      expect(records.any((item) => item.habitId == 'passive'), isTrue);
-    });
-
-    test('被动型按间隔出现破戒记录', () {
-      const today = '2026-11-24';
-      final habits = [
-        makeHabit(id: 'passive', type: HabitType.passive),
-      ];
-      final records = buildDemoRecords(habits: habits, today: today);
-      expect(
-        records.where((item) => item.status == RecordStatus.slip),
-        isNotEmpty,
       );
     });
   });

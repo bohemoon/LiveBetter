@@ -9,7 +9,7 @@ import 'repositories/maintenance_repository.dart';
 import 'repositories/record_repository.dart';
 import 'repositories/settings_repository.dart';
 
-/// 仓库由平台入口（`bootstrap_io` / `bootstrap_web`）注入实例。
+/// 仓库由平台入口（`bootstrap_io`）注入实例。
 final habitRepositoryProvider = Provider<HabitRepository>(
   (ref) => throw UnimplementedError('habitRepositoryProvider 必须在启动时覆盖'),
 );

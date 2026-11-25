@@ -1,16 +1,14 @@
 import 'dart:async';
 
-import '../../../core/constants.dart';
-import '../../../core/date_utils.dart';
-import '../../../domain/demo_data.dart';
-import '../../backup/backup_codec.dart';
-import '../../models/models.dart';
-import '../habit_repository.dart';
-import '../maintenance_repository.dart';
-import '../record_repository.dart';
-import '../settings_repository.dart';
+import 'package:livebetter/core/date_utils.dart';
+import 'package:livebetter/data/backup/backup_codec.dart';
+import 'package:livebetter/data/models/models.dart';
+import 'package:livebetter/data/repositories/habit_repository.dart';
+import 'package:livebetter/data/repositories/maintenance_repository.dart';
+import 'package:livebetter/data/repositories/record_repository.dart';
+import 'package:livebetter/data/repositories/settings_repository.dart';
 
-/// Web 预览用的内存数据源，行为与本地仓库一致，重启后重置。
+/// 测试用内存数据源，行为与本地仓库一致，进程结束后重置。
 class MemoryStore {
   MemoryStore._();
 
@@ -159,27 +157,6 @@ class MemoryStore {
       periodLength: 5,
       cycleLength: 28,
     );
-  }
-
-  /// 演示数据：合并最近 34 天记录，不覆盖今天。
-  void _seedDemoData() {
-    if (_habits.isEmpty) _seedHabits();
-    final today = todayYmd();
-    final start = _daysAgo(kDemoDataDays);
-    for (var i = 0; i < _habits.length; i++) {
-      if (_habits[i].createdAt.compareTo(start) > 0) {
-        _habits[i] = _habits[i].copyWith(createdAt: start, updatedAt: nowIso());
-      }
-    }
-    final generated = buildDemoRecords(habits: habits, today: today);
-    for (final record in generated) {
-      _records.removeWhere(
-        (item) => item.habitId == record.habitId && item.date == record.date,
-      );
-      _records.add(record);
-    }
-    _emitHabits();
-    _emitRecords();
   }
 
   /// 清除全部数据并恢复默认 5 项与默认设置。
@@ -362,9 +339,6 @@ class _MemoryMaintenanceRepository implements MaintenanceRepository {
   _MemoryMaintenanceRepository(this._store);
 
   final MemoryStore _store;
-
-  @override
-  Future<void> seedDemoData() async => _store._seedDemoData();
 
   @override
   Future<void> clearAllData() async => _store._clearAllData();

@@ -253,12 +253,6 @@ class _ProfileBody extends ConsumerWidget {
               ),
               const Divider(height: 20),
               _ActionRow(
-                title: '填入演示数据',
-                subtitle: '生成最近 $kDemoDataDays 天的打卡记录，便于预览统计',
-                onTap: () => _confirmDemo(context, ref),
-              ),
-              const Divider(height: 20),
-              _ActionRow(
                 title: '清除全部数据',
                 subtitle: '记录仅保存在本机，清除后不可恢复',
                 danger: true,
@@ -390,18 +384,6 @@ class _ProfileBody extends ConsumerWidget {
     } catch (_) {
       if (context.mounted) Toast.show(context, '导入失败，数据已回滚');
     }
-  }
-
-  Future<void> _confirmDemo(BuildContext context, WidgetRef ref) async {
-    final confirmed = await _confirm(
-      context,
-      title: '填入演示数据',
-      message: '将生成最近 $kDemoDataDays 天的示例记录，不会影响今天的打卡。',
-      confirmText: '生成',
-    );
-    if (!confirmed) return;
-    await ref.read(maintenanceRepositoryProvider).seedDemoData();
-    if (context.mounted) Toast.show(context, '已填入 $kDemoDataDays 天演示数据');
   }
 
   Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {

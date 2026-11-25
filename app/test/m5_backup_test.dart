@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:livebetter/data/backup/backup_codec.dart';
 import 'package:livebetter/data/models/models.dart';
-import 'package:livebetter/data/repositories/memory/memory_store.dart';
+
+import 'support/memory_store.dart';
 
 void main() {
   group('备份编解码', () {

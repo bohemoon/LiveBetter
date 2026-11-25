@@ -13,11 +13,8 @@ class ImportSummary {
   final int skippedRecords;
 }
 
-/// 数据维护入口：演示数据、清除全部数据、JSON 导入导出。
+/// 数据维护入口：清除全部数据、JSON 导入导出。
 abstract class MaintenanceRepository {
-  /// 填充最近 34 天演示记录。
-  Future<void> seedDemoData();
-
   /// 清空记录与项目并恢复默认 5 项与默认设置。
   Future<void> clearAllData();
 
