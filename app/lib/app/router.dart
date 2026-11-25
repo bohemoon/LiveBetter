@@ -6,6 +6,7 @@ import '../core/date_utils.dart';
 import '../core/providers.dart';
 import '../features/profile/habit_editor_page.dart';
 import '../features/profile/profile_page.dart';
+import '../features/profile/settings_page.dart';
 import '../features/records/records_page.dart';
 import '../features/today/habit_detail_page.dart';
 import '../features/today/habit_history_page.dart';
@@ -60,6 +61,10 @@ final GoRouter appRouter = GoRouter(
               path: '/profile',
               builder: (context, state) => const ProfilePage(),
               routes: [
+                GoRoute(
+                  path: 'settings',
+                  builder: (context, state) => const SettingsPage(),
+                ),
                 GoRoute(
                   path: 'habit/new',
                   builder: (context, state) => const HabitEditorPage(),

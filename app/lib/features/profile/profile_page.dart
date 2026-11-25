@@ -2,11 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/theme.dart';
 import '../../core/app_info.dart';
 import '../../core/constants.dart';
 import '../../core/date_utils.dart';
-import '../../data/backup/backup_codec.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../../shared/widgets/app_bottom_sheet.dart';
@@ -16,6 +14,7 @@ import '../../shared/widgets/switch_row.dart';
 import '../../shared/widgets/toast.dart';
 import '../notifications/reminder_scheduler.dart';
 import '../today/today_providers.dart';
+import 'profile_common.dart';
 import 'settings_controller.dart';
 
 /// 我的页：打卡项分区、习惯模式、提醒、隐私、经期、外观与数据管理。
@@ -27,7 +26,16 @@ class ProfilePage extends ConsumerWidget {
     final settingsAsync = ref.watch(settingsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('我的')),
+      appBar: AppBar(
+        title: const Text('我的'),
+        actions: [
+          IconButton(
+            tooltip: '设置',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/profile/settings'),
+          ),
+        ],
+      ),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
         error: (error, _) => Center(
@@ -57,8 +65,8 @@ class _ProfileBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
-        const _SectionTitle('基础健康'),
-        _Panel(
+        const ProfileSectionTitle('基础健康'),
+        ProfilePanel(
           children: [
             for (var i = 0; i < basicHabits.length; i++) ...[
               if (i > 0) const Divider(height: 20),
@@ -67,9 +75,9 @@ class _ProfileBody extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 20),
-        const _SectionTitle('我的打卡项'),
+        const ProfileSectionTitle('我的打卡项'),
         if (customHabits.isEmpty)
-          _Panel(
+          ProfilePanel(
             children: [
               Text(
                 '还没有自定义项目，从下方选择常用项快速添加',
@@ -78,7 +86,7 @@ class _ProfileBody extends ConsumerWidget {
             ],
           )
         else
-          _Panel(
+          ProfilePanel(
             children: [
               for (var i = 0; i < customHabits.length; i++) ...[
                 if (i > 0) const Divider(height: 20),
@@ -87,13 +95,27 @@ class _ProfileBody extends ConsumerWidget {
             ],
           ),
         const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: () => context.push('/profile/habit/new'),
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('添加打卡项'),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/profile/habit/new'),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('添加打卡项'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _showBackgroundEntry(context),
+                icon: const Icon(Icons.image_outlined, size: 18),
+                label: const Text('卡片背景'),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
-        const _SectionTitle('习惯模式'),
+        const ProfileSectionTitle('习惯模式'),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,7 +139,7 @@ class _ProfileBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        const _SectionTitle('提醒'),
+        const ProfileSectionTitle('提醒'),
         AppCard(
           child: Column(
             children: [
@@ -135,7 +157,7 @@ class _ProfileBody extends ConsumerWidget {
                 },
               ),
               const Divider(height: 20),
-              _ActionRow(
+              ProfileActionRow(
                 title: '提醒时间',
                 subtitle: '睡前留出一点缓冲',
                 value: settings.reminderTime,
@@ -151,7 +173,7 @@ class _ProfileBody extends ConsumerWidget {
                 onChanged: controller.setPeriodicReminderEnabled,
               ),
               const Divider(height: 20),
-              _ActionRow(
+              ProfileActionRow(
                 title: '通知与后台设置',
                 subtitle: '收不到通知时，检查权限与电池优化',
                 onTap: () => _openNotificationGuide(context),
@@ -160,30 +182,7 @@ class _ProfileBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        const _SectionTitle('隐私'),
-        AppCard(
-          child: Column(
-            children: [
-              SwitchRow(
-                title: '隐藏敏感项名称',
-                subtitle: '对外显示为别名',
-                value: settings.hideSensitiveNames,
-                onChanged: controller.setHideSensitiveNames,
-              ),
-              const Divider(height: 20),
-              SwitchRow(
-                title: '应用锁',
-                subtitle: settings.appLockEnabled
-                    ? '已开启，重新进入需生物识别或密码解锁'
-                    : '使用 4 位密码保护隐私数据',
-                value: settings.appLockEnabled,
-                onChanged: (enabled) => _toggleAppLock(context, ref, enabled),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        const _SectionTitle('经期管理'),
+        const ProfileSectionTitle('经期管理'),
         AppCard(
           child: Column(
             children: [
@@ -200,63 +199,12 @@ class _ProfileBody extends ConsumerWidget {
                 },
               ),
               const Divider(height: 20),
-              _ActionRow(
+              ProfileActionRow(
                 title: '周期设置',
                 subtitle: settings.periodStart == null
                     ? '记录最近一次开始日期，用于推算当前阶段'
                     : '上次开始 ${settings.periodStart} · 周期 ${settings.cycleLength} 天',
                 onTap: () => _openPeriodSheet(context, ref, settings),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        const _SectionTitle('外观'),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('主题色', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              SegmentedControl<AppTheme>(
-                value: AppTheme.parse(settings.theme),
-                options: [
-                  for (final value in AppTheme.values)
-                    SegmentedOption(value: value, label: value.label),
-                ],
-                onChanged: controller.setTheme,
-              ),
-              const Divider(height: 24),
-              _ActionRow(
-                title: '卡片背景',
-                subtitle: '为单张打卡卡片选择背景图',
-                onTap: () => _showBackgroundEntry(context),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        const _SectionTitle('数据'),
-        AppCard(
-          child: Column(
-            children: [
-              _ActionRow(
-                title: '导出数据',
-                subtitle: '生成 JSON 备份，可分享到其他设备',
-                onTap: () => _exportData(context, ref),
-              ),
-              const Divider(height: 20),
-              _ActionRow(
-                title: '导入数据',
-                subtitle: '从 JSON 备份恢复，将覆盖当前数据',
-                onTap: () => _importData(context, ref),
-              ),
-              const Divider(height: 20),
-              _ActionRow(
-                title: '清除全部数据',
-                subtitle: '记录仅保存在本机，清除后不可恢复',
-                danger: true,
-                onTap: () => _confirmClear(context, ref),
               ),
             ],
           ),
@@ -284,28 +232,6 @@ class _ProfileBody extends ConsumerWidget {
     await ref.read(settingsControllerProvider.notifier).setReminderTime(text);
   }
 
-  Future<void> _toggleAppLock(
-    BuildContext context,
-    WidgetRef ref,
-    bool enabled,
-  ) async {
-    if (!enabled) {
-      await ref.read(settingsControllerProvider.notifier).setAppLock(false);
-      if (context.mounted) Toast.show(context, '应用锁已关闭');
-      return;
-    }
-    final pin = await AppBottomSheet.show<String>(
-      context: context,
-      title: '设置应用锁密码',
-      builder: (ctx) => const _PinSetupSheet(),
-    );
-    if (pin == null) return;
-    await ref
-        .read(settingsControllerProvider.notifier)
-        .setAppLock(true, pin: pin);
-    if (context.mounted) Toast.show(context, '应用锁已开启');
-  }
-
   Future<void> _openPeriodSheet(
     BuildContext context,
     WidgetRef ref,
@@ -331,138 +257,6 @@ class _ProfileBody extends ConsumerWidget {
       context: context,
       title: '通知与后台设置',
       builder: (ctx) => const _NotificationGuideSheet(),
-    );
-  }
-
-  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
-    final service = ref.read(backupFileServiceProvider);
-    if (!service.supported) {
-      Toast.show(context, '当前平台暂不支持文件导出');
-      return;
-    }
-    try {
-      final json = await ref.read(maintenanceRepositoryProvider).exportJson();
-      final shared =
-          await service.shareJson(json, fileName: backupFileName());
-      if (context.mounted && shared) {
-        Toast.show(context, '备份文件已生成');
-      }
-    } catch (_) {
-      if (context.mounted) Toast.show(context, '导出失败，请稍后重试');
-    }
-  }
-
-  Future<void> _importData(BuildContext context, WidgetRef ref) async {
-    final service = ref.read(backupFileServiceProvider);
-    if (!service.supported) {
-      Toast.show(context, '当前平台暂不支持文件导入');
-      return;
-    }
-    final source = await service.pickJson();
-    if (source == null) return;
-    if (!context.mounted) return;
-    final confirmed = await _confirm(
-      context,
-      title: '导入数据',
-      message: '导入将覆盖当前全部打卡项、记录与设置，建议先导出备份。',
-      confirmText: '确认导入',
-      danger: true,
-    );
-    if (!confirmed) return;
-    try {
-      final summary =
-          await ref.read(maintenanceRepositoryProvider).importJson(source);
-      ref.invalidate(settingsControllerProvider);
-      if (context.mounted) {
-        Toast.show(
-          context,
-          '已导入 ${summary.habits} 个项目、${summary.records} 条记录',
-        );
-      }
-    } on BackupException catch (error) {
-      if (context.mounted) Toast.show(context, error.message);
-    } catch (_) {
-      if (context.mounted) Toast.show(context, '导入失败，数据已回滚');
-    }
-  }
-
-  Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
-    final confirmed = await _confirm(
-      context,
-      title: '清除全部数据',
-      message: '将删除所有打卡记录与设置，并恢复默认项目，且不可恢复。',
-      confirmText: '确认清除',
-      danger: true,
-    );
-    if (!confirmed) return;
-    await ref.read(maintenanceRepositoryProvider).clearAllData();
-    ref.invalidate(settingsControllerProvider);
-    if (context.mounted) Toast.show(context, '已清除全部数据');
-  }
-
-  Future<bool> _confirm(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required String confirmText,
-    bool danger = false,
-  }) async {
-    final result = await AppBottomSheet.show<bool>(
-      context: context,
-      title: title,
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(message, style: Theme.of(ctx).textTheme.bodyMedium),
-          const SizedBox(height: 20),
-          FilledButton(
-            style: danger
-                ? FilledButton.styleFrom(
-                    backgroundColor: Theme.of(ctx).colorScheme.error,
-                  )
-                : null,
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(confirmText),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(title, style: Theme.of(context).textTheme.bodySmall),
-    );
-  }
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
-      ),
     );
   }
 }
@@ -531,133 +325,6 @@ class _HabitRow extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ActionRow extends StatelessWidget {
-  const _ActionRow({
-    required this.title,
-    this.subtitle,
-    this.value,
-    this.onTap,
-    this.danger = false,
-  });
-
-  final String title;
-  final String? subtitle;
-  final String? value;
-  final VoidCallback? onTap;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: danger ? theme.colorScheme.error : null,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 4),
-                    Text(subtitle!, style: theme.textTheme.bodySmall),
-                  ],
-                ],
-              ),
-            ),
-            if (value != null) ...[
-              const SizedBox(width: 12),
-              Text(
-                value!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ] else if (onTap != null)
-              Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PinSetupSheet extends ConsumerStatefulWidget {
-  const _PinSetupSheet();
-
-  @override
-  ConsumerState<_PinSetupSheet> createState() => _PinSetupSheetState();
-}
-
-class _PinSetupSheetState extends ConsumerState<_PinSetupSheet> {
-  final _first = TextEditingController();
-  final _second = TextEditingController();
-
-  @override
-  void dispose() {
-    _first.dispose();
-    _second.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final first = _first.text.trim();
-    final second = _second.text.trim();
-    if (!RegExp(r'^\d{4}$').hasMatch(first)) {
-      Toast.show(context, '请输入 4 位数字密码');
-      return;
-    }
-    if (first != second) {
-      Toast.show(context, '两次输入的密码不一致');
-      return;
-    }
-    Navigator.of(context).pop(first);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          '4 位数字，仅保存在本机，不保存明文。',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _first,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          maxLength: 4,
-          decoration: const InputDecoration(labelText: '输入密码'),
-        ),
-        TextField(
-          controller: _second,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          maxLength: 4,
-          decoration: const InputDecoration(labelText: '再次输入'),
-        ),
-        const SizedBox(height: 8),
-        FilledButton(onPressed: _submit, child: const Text('开启应用锁')),
-      ],
     );
   }
 }
