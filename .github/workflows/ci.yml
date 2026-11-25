@@ -84,6 +84,17 @@ jobs:
         working-directory: app
         run: flutter pub get
 
+      # 应用内更新依赖 tag 与 pubspec 版本一致
+      - name: 校验 tag 与版本号
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: app
+        run: |
+          version=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          if [ "v$version" != "${GITHUB_REF_NAME}" ]; then
+            echo "tag ${GITHUB_REF_NAME} 与 pubspec version ${version} 不一致"
+            exit 1
+          fi
+
       - name: 构建 APK
         working-directory: app
         run: flutter build apk --release --target-platform android-arm64

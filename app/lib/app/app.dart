@@ -18,6 +18,7 @@ class LiveBetterApp extends ConsumerStatefulWidget {
 }
 
 class _LiveBetterAppState extends ConsumerState<LiveBetterApp> {
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<void>? _tapSubscription;
 
   @override
@@ -27,6 +28,22 @@ class _LiveBetterAppState extends ConsumerState<LiveBetterApp> {
         .read(notificationServiceProvider)
         .tapStream
         .listen((_) => appRouter.go('/today'));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoCheckUpdate());
+  }
+
+  /// 启动后静默检查更新（24 小时最多一次），失败不打扰用户。
+  Future<void> _autoCheckUpdate() async {
+    try {
+      final service = ref.read(updateServiceProvider);
+      if (!await service.shouldAutoCheck()) return;
+      final info = await service.checkForUpdate();
+      if (info == null) return;
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text('发现新版本 v${info.version}，可在 我的 → 设置 中更新')),
+      );
+    } catch (_) {
+      // 网络异常或限流时静默跳过。
+    }
   }
 
   @override
@@ -40,6 +57,7 @@ class _LiveBetterAppState extends ConsumerState<LiveBetterApp> {
     final theme = ref.watch(appThemeProvider);
     return MaterialApp.router(
       title: 'LiveBetter',
+      scaffoldMessengerKey: _messengerKey,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(theme),
       routerConfig: appRouter,

@@ -85,4 +85,6 @@ flutter {
 dependencies {
     // flutter_local_notifications 需要 Java 8+ API 脱糖
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // 应用内更新通过 FileProvider 暴露 APK
+    implementation("androidx.core:core-ktx:1.13.1")
 }

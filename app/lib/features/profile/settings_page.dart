@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
+import '../../core/app_info.dart';
 import '../../data/backup/backup_codec.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
@@ -10,6 +13,7 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/segmented_control.dart';
 import '../../shared/widgets/switch_row.dart';
 import '../../shared/widgets/toast.dart';
+import '../../services/update_service.dart';
 import 'profile_common.dart';
 import 'settings_controller.dart';
 
@@ -43,6 +47,7 @@ class _SettingsBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(settingsControllerProvider.notifier);
+    final packageAsync = ref.watch(packageInfoProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -114,8 +119,170 @@ class _SettingsBody extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 20),
+        const ProfileSectionTitle('关于与更新'),
+        AppCard(
+          child: Column(
+            children: [
+              ProfileActionRow(
+                title: '当前版本',
+                value: packageAsync.when(
+                  data: (info) => 'v${info.version} (${info.buildNumber})',
+                  loading: () => '读取中…',
+                  error: (_, _) => '未知',
+                ),
+              ),
+              const Divider(height: 20),
+              ProfileActionRow(
+                title: '检查更新',
+                subtitle: '从 GitHub Releases 获取最新版本',
+                onTap: () => _checkUpdate(context, ref),
+              ),
+            ],
+          ),
+        ),
       ],
     );
+  }
+
+  Future<void> _checkUpdate(BuildContext context, WidgetRef ref) async {
+    Toast.show(context, '正在检查更新…');
+    try {
+      final info = await ref.read(updateServiceProvider).checkForUpdate();
+      if (!context.mounted) return;
+      if (info == null) {
+        Toast.show(context, '当前已是最新版本');
+        return;
+      }
+      final action = await AppBottomSheet.show<String>(
+        context: context,
+        title: '发现新版本 v${info.version}',
+        builder: (ctx) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: SingleChildScrollView(
+                child: Text(
+                  info.notes.isEmpty ? '包含体验与稳定性改进。' : info.notes,
+                  style: Theme.of(ctx).textTheme.bodyMedium,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '安装包 ${_formatSize(info.sizeBytes)}',
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop('download'),
+              child: const Text('下载并安装'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('later'),
+              child: const Text('稍后'),
+            ),
+          ],
+        ),
+      );
+      if (action != 'download' || !context.mounted) return;
+      await _downloadAndInstall(context, ref, info);
+    } on UpdateException catch (error) {
+      if (context.mounted) Toast.show(context, error.message);
+    } catch (_) {
+      if (context.mounted) Toast.show(context, '检查更新失败，请稍后重试');
+    }
+  }
+
+  Future<void> _downloadAndInstall(
+    BuildContext context,
+    WidgetRef ref,
+    AppUpdateInfo info,
+  ) async {
+    final progress = ValueNotifier<double?>(null);
+    var dialogClosed = false;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          content: ValueListenableBuilder<double?>(
+            valueListenable: progress,
+            builder: (context, value, _) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LinearProgressIndicator(value: value),
+                const SizedBox(height: 12),
+                Text(
+                  value == null
+                      ? '准备下载…'
+                      : '正在下载 ${(value * 100).toStringAsFixed(0)}%',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final service = ref.read(updateServiceProvider);
+      final installer = ref.read(updateInstallerProvider);
+      final file = await service.download(
+        info,
+        onProgress: (received, total) {
+          progress.value =
+              total > 0 ? (received / total).clamp(0.0, 1.0) : null;
+        },
+      );
+      await service.verify(info, file);
+      if (!context.mounted) return;
+      dialogClosed = true;
+      navigator.pop();
+
+      final abis = await installer.supportedAbis();
+      if (!context.mounted) return;
+      if (!abis.contains('arm64-v8a')) {
+        Toast.show(context, '当前设备架构不支持自动安装，请在 Releases 页下载');
+        try {
+          await installer.openUrl(info.apkUrl);
+        } catch (_) {
+          // 设备无浏览器时保持提示即可。
+        }
+        return;
+      }
+      if (!await installer.canInstallPackages()) {
+        await installer.openInstallSettings();
+        if (context.mounted) Toast.show(context, '请允许安装未知应用后重试');
+        return;
+      }
+      await installer.installApk(file.path);
+    } on UpdateException catch (error) {
+      if (!dialogClosed && context.mounted) {
+        dialogClosed = true;
+        navigator.pop();
+      }
+      if (context.mounted) Toast.show(context, error.message);
+    } catch (_) {
+      if (!dialogClosed && context.mounted) {
+        dialogClosed = true;
+        navigator.pop();
+      }
+      if (context.mounted) Toast.show(context, '下载失败，请稍后重试');
+    } finally {
+      progress.dispose();
+    }
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes <= 0) return '大小未知';
+    final mb = bytes / (1024 * 1024);
+    return '${mb.toStringAsFixed(mb >= 10 ? 0 : 1)} MB';
   }
 
   Future<void> _toggleAppLock(
