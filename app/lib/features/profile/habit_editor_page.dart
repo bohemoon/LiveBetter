@@ -8,6 +8,7 @@ import '../../data/providers.dart';
 import '../../domain/habit_presets.dart';
 import '../../shared/widgets/app_bottom_sheet.dart';
 import '../../shared/widgets/app_card.dart';
+import '../../shared/widgets/habit_background_card.dart';
 import '../../shared/widgets/segmented_control.dart';
 import '../../shared/widgets/toast.dart';
 import '../today/today_providers.dart';
@@ -33,7 +34,10 @@ class HabitEditorPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEdit ? '编辑项目' : '新建项目')),
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: Text(isEdit ? '编辑项目' : '新建项目'),
+      ),
       body: _HabitForm(habit: habit),
     );
   }
@@ -290,6 +294,10 @@ class _HabitFormState extends ConsumerState<_HabitForm> {
               ],
             ),
           ),
+        if (_isEdit) ...[
+          const SizedBox(height: 20),
+          HabitBackgroundCard(habit: widget.habit!),
+        ],
         const SizedBox(height: 24),
         FilledButton(onPressed: _save, child: Text(_isEdit ? '保存' : '创建')),
         if (_isEdit && !widget.habit!.isRequired) ...[

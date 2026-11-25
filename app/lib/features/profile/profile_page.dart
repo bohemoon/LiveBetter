@@ -95,24 +95,10 @@ class _ProfileBody extends ConsumerWidget {
             ],
           ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => context.push('/profile/habit/new'),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('添加打卡项'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _showBackgroundEntry(context),
-                icon: const Icon(Icons.image_outlined, size: 18),
-                label: const Text('卡片背景'),
-              ),
-            ),
-          ],
+        OutlinedButton.icon(
+          onPressed: () => context.push('/profile/habit/new'),
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('添加打卡项'),
         ),
         const SizedBox(height: 20),
         const ProfileSectionTitle('习惯模式'),
@@ -241,14 +227,6 @@ class _ProfileBody extends ConsumerWidget {
       context: context,
       title: '经期管理',
       builder: (ctx) => _PeriodSheet(settings: settings),
-    );
-  }
-
-  Future<void> _showBackgroundEntry(BuildContext context) {
-    return AppBottomSheet.show<void>(
-      context: context,
-      title: '卡片背景',
-      builder: (ctx) => const _BackgroundSheet(),
     );
   }
 
@@ -442,121 +420,6 @@ class _PeriodSheetState extends ConsumerState<_PeriodSheet> {
         FilledButton(onPressed: _save, child: const Text('保存')),
       ],
     );
-  }
-}
-
-/// 背景选择列表：逐项进入设置或清除。
-class _BackgroundSheet extends ConsumerWidget {
-  const _BackgroundSheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final service = ref.watch(backgroundImageServiceProvider);
-    final habits = ref.watch(habitsProvider).valueOrNull ?? const <Habit>[];
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          '为单张打卡卡片选择背景图，图片会压缩到 300KB 以内，仅保存在本机。',
-          style: theme.textTheme.bodySmall,
-        ),
-        const SizedBox(height: 12),
-        if (!service.supported)
-          Text('当前平台暂不支持选图', style: theme.textTheme.bodyMedium)
-        else
-          SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.46,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                for (final habit in habits)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      habit.displayName(hideSensitive: false),
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    subtitle: Text(
-                      habit.bgPath == null ? '未设置背景' : '已设置背景',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    trailing: const Icon(Icons.chevron_right, size: 20),
-                    onTap: () => AppBottomSheet.show<void>(
-                      context: context,
-                      title: habit.displayName(hideSensitive: false),
-                      builder: (ctx) => _BackgroundActions(habit: habit),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _BackgroundActions extends ConsumerWidget {
-  const _BackgroundActions({required this.habit});
-
-  final Habit habit;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final service = ref.watch(backgroundImageServiceProvider);
-    final image = service.providerFor(habit.bgPath);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (image != null) ...[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image(image: image, height: 140, fit: BoxFit.cover),
-          ),
-          const SizedBox(height: 16),
-        ],
-        FilledButton(
-          onPressed: service.supported ? () => _pick(context, ref) : null,
-          child: Text(habit.bgPath == null ? '选择图片' : '更换图片'),
-        ),
-        if (habit.bgPath != null) ...[
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => _clear(context, ref),
-            child: const Text('清除背景'),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Future<void> _pick(BuildContext context, WidgetRef ref) async {
-    final relative =
-        await ref.read(backgroundImageServiceProvider).pick(habit.id);
-    if (relative == null) {
-      if (context.mounted) Toast.show(context, '未选择图片或压缩后仍超过 300KB');
-      return;
-    }
-    await ref.read(habitRepositoryProvider).save(
-          habit.copyWith(bgPath: relative, updatedAt: nowIso()),
-        );
-    if (!context.mounted) return;
-    Toast.show(context, '背景已更新');
-    Navigator.of(context).pop();
-  }
-
-  Future<void> _clear(BuildContext context, WidgetRef ref) async {
-    await ref.read(backgroundImageServiceProvider).remove(habit.id);
-    await ref.read(habitRepositoryProvider).save(
-          habit.copyWith(clearBgPath: true, updatedAt: nowIso()),
-        );
-    if (!context.mounted) return;
-    Toast.show(context, '背景已清除');
-    Navigator.of(context).pop();
   }
 }
 

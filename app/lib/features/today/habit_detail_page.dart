@@ -3,13 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
-import '../../core/date_utils.dart';
 import '../../data/models/models.dart';
-import '../../data/providers.dart';
 import '../../domain/check_in_rules.dart';
 import '../../domain/stats/habit_stats.dart';
 import '../../shared/widgets/app_bottom_sheet.dart';
 import '../../shared/widgets/app_card.dart';
+import '../../shared/widgets/habit_background_card.dart';
 import '../../shared/widgets/toast.dart';
 import 'today_providers.dart';
 
@@ -50,7 +49,7 @@ class HabitDetailPage extends ConsumerWidget {
           const SizedBox(height: 12),
           _StatsCard(habit: habit, stats: stats),
           const SizedBox(height: 12),
-          _BackgroundCard(habit: habit),
+          HabitBackgroundCard(habit: habit),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
@@ -127,84 +126,6 @@ class _StatItem extends StatelessWidget {
         Text(label, style: theme.textTheme.bodySmall),
       ],
     );
-  }
-}
-
-/// 卡片背景：选择图片（压缩到 300KB 内）或清除。
-class _BackgroundCard extends ConsumerWidget {
-  const _BackgroundCard({required this.habit});
-
-  final Habit habit;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final service = ref.watch(backgroundImageServiceProvider);
-    final image = service.providerFor(habit.bgPath);
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('卡片背景', style: theme.textTheme.bodyMedium),
-          if (image != null) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image(
-                image: image,
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ],
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed:
-                    service.supported ? () => _pick(context, ref) : null,
-                child: Text(habit.bgPath == null ? '选择图片' : '更换图片'),
-              ),
-              if (habit.bgPath != null)
-                TextButton(
-                  onPressed: () => _clear(context, ref),
-                  child: const Text('清除背景'),
-                ),
-            ],
-          ),
-          if (!service.supported)
-            Text(
-              '当前平台暂不支持选图',
-              style: theme.textTheme.bodySmall,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pick(BuildContext context, WidgetRef ref) async {
-    final relative = await ref
-        .read(backgroundImageServiceProvider)
-        .pick(habit.id);
-    if (relative == null) {
-      if (context.mounted) Toast.show(context, '未选择图片或压缩后仍超过 300KB');
-      return;
-    }
-    await ref.read(habitRepositoryProvider).save(
-          habit.copyWith(bgPath: relative, updatedAt: nowIso()),
-        );
-    if (context.mounted) Toast.show(context, '背景已更新');
-  }
-
-  Future<void> _clear(BuildContext context, WidgetRef ref) async {
-    await ref.read(backgroundImageServiceProvider).remove(habit.id);
-    await ref.read(habitRepositoryProvider).save(
-          habit.copyWith(clearBgPath: true, updatedAt: nowIso()),
-        );
-    if (context.mounted) Toast.show(context, '背景已清除');
   }
 }
 
